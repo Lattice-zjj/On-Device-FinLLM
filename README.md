@@ -1,6 +1,6 @@
 <div align="center"> 
 
-<a href="https://github.com/OD-FinLLM/" target="_blank"><img src="assets/logo.webp" alt="OD-FinLLM" style="width: 80%; min-width: 350px; display: block; margin: auto;"></a>
+<a href="https://github.com/OD-FinLLM/" target="_blank"><img src="./web_demo/assets/logo.webp" alt="OD-FinLLM" style="width: 80%; min-width: 350px; display: block; margin: auto;"></a>
 
 [![Maintainer](https://img.shields.io/badge/Maintainer-Firefly-blue.svg "Maintainer")](https://github.com/Firefly-Tech) [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20MacOS-orange.svg "Platform")](./) [![Framework](https://img.shields.io/badge/Framework-Huggingface%20Transformers-lightgrey.svg "Framework")](./)
 
@@ -20,7 +20,7 @@ OD-FinLLM is a refined model derived from the LLaMA series, with specific enhanc
 ## 🎥 Demo
 The following is a demonstration video of OD-FinLLM, demonstrating the application performance of the model in Chinese financial Q&A scenarios. You can watch the embedded video directly here:
 
-<video width="80%" controls> <source src="assets/OD-FinLLM.mp4" type="video/mp4"> Your browser does not support video playback. </video>
+<video width="80%" controls> <source src="./web_demo/assets/OD-FinLLM.mp4" type="video/mp4"> Your browser does not support video playback. </video>
 
 ## 🔄 Latest Updates
 
@@ -91,7 +91,7 @@ We initially trained a highly specialized teacher model using the LLaMA 3.1-8B a
 
 The distillation process, as illustrated in below, involved distilling knowledge from the M-layer teacher model (the original, unpruned model) into the N-layer student model (the pruned model). The student model was trained to mimic the behavior of the teacher model by minimizing a combination of losses, including the embedding output loss, the logit loss, and specific losses from the Transformer encoder that were mapped between the student blocks (S) and the teacher blocks (T). This comprehensive loss minimization strategy allowed the student model to learn effectively from the teacher model, capturing its essential features and decision-making patterns.
 
-<a href="https://github.com/OD-FinLLM/" target="_blank"><img src="assets/kd.png" alt="OD-FinLLM" style="width: 80%; min-width: 350px; display: block; margin: auto;"></a>
+<a href="https://github.com/OD-FinLLM/" target="_blank"><img src="./web_demo/assets/kd.png" alt="OD-FinLLM" style="width: 80%; min-width: 350px; display: block; margin: auto;"></a>
 
 Through this distillation process, we ensured that the LLaMA 2-7B model could maintain a high level of performance and accuracy in financial tasks, similar to that of its larger counterpart, while benefiting from reduced computational requirements and improved efficiency. This approach resulted in a robust and efficient financial model that leverages the strengths of both architectures, combining the deep understanding of the larger model with the practical advantages of the smaller model.
 
