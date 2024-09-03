@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OD-FinLLM 📱</title>
+    <!-- 引入Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <style>
+        body {
+            background-color: #e6f7ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .chat-container {
+            width: 100%;
+            height: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .chat-window {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            background-color: #e6f7ff; /* 浅蓝色背景 */
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f1f1f1;
+        }
+
+        .thinking {
+            color: grey;
+        }
+
+        .image-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: auto;
+            margin-top: 0;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 500px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .input-area {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Fullscreen image modal */
+        #image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 165, 0, 0.75); /* Orange with transparency */
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #image-modal img {
+            max-width: 80%;
+            max-height: 80%;
+            cursor: zoom-in;
+            transform: none; /* Ensure no initial zoom */
+            transition: transform 0.3s ease; /* Smooth transition */
+        }
+
+        /* Close button */
+        #image-modal .close {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        #image-modal .close:hover,
+        #image-modal .close:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* 覆盖式提示框 */
+        #overlay-alert {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1050;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #overlay-alert .alert-content {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-window" id="chat-window">
+            <!-- Chat messages will appear here -->
+        </div>
+
+        <div class="input-area d-flex align-items-center">
+        <select class="form-select w-25 me-2" id="model-select">
+            <option value="llama-7B">llama-7B</option>
+        </select>
+
+        <input type="text" class="form-control w-100" id="message-input" placeholder="请输入您想问的问题...">
+
+        <button class="btn btn-primary ms-2 w-50" id="send-button">发送</button>
+        <button class="btn btn-danger ms-2 w-50" id="clear-button">开启新对话</button>
+    </div>
+    </div>
+
+    
+
+    <!-- Fullscreen image modal -->
+    <div id="image-modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modal-image">
+    </div>
+
+    <div id="overlay-alert">
+        <div class="alert-content animate__animated animate__fadeIn">
+            不能发送空白对话！
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        var currentConversationId = null;
+
+        function generateUniqueId() {
+            return 'id-' + Math.random().toString(36).substr(2, 16);
+        }
+
+        socket.on('response', function(data) {
+            if (data.message === "[DONE]"){
+                console.log("AI 回复完成");
+                // 移除 "思考中..." 提示
+                var thinkingMessage = document.getElementById('thinking-message');
+                if (thinkingMessage) {
+                    thinkingMessage.remove();
+                }
+
+                currentConversationId = null;
+            }
+            else {
+                var aiMessageElement = document.getElementById(currentConversationId);
+                
+                // 检查返回的数据是否包含一个引用列表
+                if (data.list && Array.isArray(data.list)) {
+                    data.list.forEach(function(item, index) {
+                        var referenceElement = document.createElement('div');
+                        var urlObject = new URL(item.url);
+                        var domain = urlObject.hostname;
+                        referenceElement.innerHTML = `<a href="${item.url}" target="_blank">${index + 1}. ${domain}</a>`;
+
+                        aiMessageElement.appendChild(referenceElement);
+                    });
+                } else {
+                    aiMessageElement.innerHTML += data.message;
+                }
+
+                // 滚动到底部
+                var chatWindow = document.getElementById('chat-window');
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+        });
+
+        socket.on('response_dataframe', function(data) {
+            setTimeout(function() {
+                var chatWindow = document.getElementById('chat-window');
+                var message = document.createElement('div');
+                message.classList.add('message', 'animate__animated', 'animate__fadeIn');
+
+                // 包裹表格并设置最大高度和滚动条
+                // 包裹表格并设置居中样式
+                message.innerHTML = '<div class="table-responsive" style="max-height: 300px; overflow-y: auto;">' +
+                                    '<table class="table table-striped table-bordered">' +
+                                    data.table.replace(/<th/g, '<th style="text-align: center; vertical-align: middle; padding: 4px 8px;"')  // 动态修改表头样式
+                                            .replace(/<td/g, '<td style="text-align: center; vertical-align: middle; padding: 4px 8px;"') + // 动态修改单元格样式
+                                    '</table></div>';
+                
+                chatWindow.appendChild(message);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }, 1000);  // 延迟1秒显示数据表
+        });
+
+        socket.on('thinking', function(data) {
+            // 找到当前的对话框元素
+            var chatWindow = document.getElementById('chat-window');
+            var aiMessageElement = document.getElementById(currentConversationId);
+            
+            // 如果当前对话框元素存在，将“思考中...”附加到该元素中
+            if (aiMessageElement) {
+                var thinkingMessage = document.createElement('div');
+                thinkingMessage.classList.add('thinking');
+                thinkingMessage.id = 'thinking-message';  // 给这个元素设置一个ID，以便后续移除
+                thinkingMessage.innerHTML = '<em>' + data.message + '</em>';  // 显示思考中的提示信息
+                aiMessageElement.appendChild(thinkingMessage);
+            }
+
+            // 滚动到底部
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        });
+
+        socket.on('remove_thinking', function() {
+            var thinkingMessage = document.getElementById('thinking-message');
+            if (thinkingMessage) {
+                thinkingMessage.remove();
+            }
+        });
+        socket.on('image', function(data) {
+            setTimeout(function() {
+                displayImages(data.url);
+            }, 2000);  // 延迟2秒显示图片
+        });
+
+        document.getElementById('send-button').addEventListener('click', function() {
+            var input = document.getElementById('message-input');
+            var userMessage = input.value.trim();
+
+            if (userMessage === "") {
+                showOverlayAlert("不能发送空白对话！");
+                return; // Prevent sending empty message
+            }
+
+            input.value = ''; // Clear input after sending
+
+            var chatWindow = document.getElementById('chat-window');
+            var message = document.createElement('div');
+            message.classList.add('message', 'animate__animated', 'animate__fadeIn');
+            message.innerHTML = '<strong>You: </strong> ' + userMessage;
+            chatWindow.appendChild(message);
+
+            // 生成一个唯一ID，作为当前对话的容器ID
+            currentConversationId = generateUniqueId();
+
+            // 创建一个新的 div 用于显示流式输出
+            var aiMessage = document.createElement('div');
+            aiMessage.classList.add('message', 'animate__animated', 'animate__fadeIn');
+            aiMessage.id = currentConversationId;  // 给这个元素设置唯一ID
+            aiMessage.innerHTML = '<strong>OD-FinLLM :</strong> ';
+            chatWindow.appendChild(aiMessage);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            // 发送用户消息到服务器
+            socket.emit('message', {'message': userMessage});
+        });
+
+        document.getElementById('clear-button').addEventListener('click', function() {
+            var chatWindow = document.getElementById('chat-window');
+            var separator = document.createElement('div');
+            separator.classList.add('message', 'text-center', 'text-muted');
+            separator.innerHTML = '————————开启新对话————————';
+            chatWindow.appendChild(separator);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        });
+
+        function displayImages(imageUrl) {
+            var chatWindow = document.getElementById('chat-window');
+            var imageContainer = document.createElement('div');
+            imageContainer.className = 'image-container';
+            var img = document.createElement('img');
+            img.src = imageUrl;
+            img.onclick = function() {
+                openModal(imageUrl);
+            };
+            imageContainer.appendChild(img);
+            chatWindow.appendChild(imageContainer);
+
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function openModal(imageUrl) {
+            var modal = document.getElementById("image-modal");
+            var modalImg = document.getElementById("modal-image");
+            modal.style.display = "flex";
+            modalImg.src = imageUrl;
+            modalImg.style.transform = "scale(1)";  // Reset zoom on open
+            modalImg.style.transformOrigin = "center center";  // Reset transform origin
+            modalImg.style.left = "0px";  // Reset position
+            modalImg.style.top = "0px";   // Reset position
+            modalImg.draggable = false; // Disable dragging of the image element itself
+
+            let scale = 1;
+            let isDragging = false;
+            let startX, startY;
+
+            // Zoom on wheel
+            modalImg.onwheel = function(event) {
+                event.preventDefault();
+
+                let rect = modalImg.getBoundingClientRect();
+                let offsetX = event.clientX - rect.left;  // Mouse X position within the image
+                let offsetY = event.clientY - rect.top;   // Mouse Y position within the image
+
+                const prevScale = scale;
+                scale = event.deltaY > 0 ? scale * 0.9 : scale * 1.1;
+
+                // Ensure image doesn't shrink below initial size
+                if (scale < 1) scale = 1;
+
+                // Calculate the new transform origin
+                let originX = ((offsetX / rect.width) * 100);
+                let originY = ((offsetY / rect.height) * 100);
+
+                // Apply the scaling transformation
+                modalImg.style.transformOrigin = `${originX}% ${originY}%`;
+                modalImg.style.transform = `scale(${scale})`;
+            };
+
+            // Drag to pan
+            modalImg.onmousedown = function(event) {
+                if (scale > 1) {  // Only allow dragging if the image is zoomed in
+                    isDragging = true;
+                    startX = event.clientX - modalImg.offsetLeft;
+                    startY = event.clientY - modalImg.offsetTop;
+                    modal.style.cursor = "grabbing";
+                }
+            };
+
+            modalImg.onmousemove = function(event) {
+                if (isDragging) {
+                    modalImg.style.left = `${event.clientX - startX}px`;
+                    modalImg.style.top = `${event.clientY - startY}px`;
+                }
+            };
+
+            modalImg.onmouseup = function() {
+                isDragging = false;
+                modal.style.cursor = "default";
+            };
+
+            modalImg.onmouseleave = function() {
+                isDragging = false;
+                modal.style.cursor = "default";
+            };
+        }
+
+
+        var closeModal = document.getElementsByClassName("close")[0];
+        closeModal.onclick = function() { 
+            var modal = document.getElementById("image-modal");
+            modal.style.display = "none";
+        }
+
+        function showOverlayAlert(message) {
+            var overlayAlert = document.getElementById('overlay-alert');
+            overlayAlert.querySelector('.alert-content').textContent = message;
+            overlayAlert.style.display = 'flex';
+            setTimeout(function() {
+                overlayAlert.style.display = 'none';
+            }, 1000); // Display alert for 1 second
+        }
+    </script>
+</body>
+</html>
+
+        
