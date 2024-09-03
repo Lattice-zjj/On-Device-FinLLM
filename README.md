@@ -20,7 +20,7 @@ OD-FinLLM is a refined model derived from the LLaMA series, with specific enhanc
 ## 🎥 Demo
 The following is a demonstration video of OD-FinLLM, demonstrating the application performance of the model in Chinese financial Q&A scenarios. You can watch the embedded video directly here:
 
-<video width="80%" controls> <source src="https://github.com/Lattice-zjj/On-Device-FinLLM/raw/main/web_demo/assets/OD-FinLLM.mp4"></video>" type="video/mp4"> Your browser does not support video playback. </video>
+<video width="80%" controls> <source src="https://github.com/user-attachments/assets/b6205a52-c2bf-4661-97ea-66510cfb8a9d" type="video/mp4"> Your browser does not support video playback. </video>
 
 ## 🔄 Latest Updates
 
