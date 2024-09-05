@@ -1,7 +1,7 @@
 import os
-os.environ["REPLICATE_API_TOKEN"] = "r8_WVoeeZJUpDVkgs0FD7odeYKQwVa3Udc31c3wW"
-os.environ['GROQ_API_KEY'] = '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'
-GROQ_API_KEY = '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'
+os.environ["REPLICATE_API_TOKEN"] = "your_REPLICATE_API_TOKEN"
+os.environ['GROQ_API_KEY'] = 'your_GROQ_API_KEY'
+GROQ_API_KEY = 'your_GROQ_API_KEY'
 from llama_index.core import (
     VectorStoreIndex,
     SimpleDirectoryReader,
