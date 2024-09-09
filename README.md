@@ -126,8 +126,20 @@ The resources provided by this project are strictly for academic research purpos
 ## 📌 Citation
 
 If you use the data or code from this project, please cite it as follows:
-
+```bibtex
+@software{Zjj_On_Device_FinLLM_2024,
+  author = {Junjie Zhou},
+  title = {{On-Device-FinLLM}},
+  url = {https://github.com/Lattice-zjj/On-Device-FinLLM},
+  version = {v1.0},
+  year = {2024}
+}
+```
 
 ## ☎️ Contact and Feedback
 
 We appreciate your support! Feel free to star 🌟, watch, and share this project. For any issues, please submit them via GitHub Issues.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Lattice-zjj/On-Device-FinLLM&type=Date)](https://star-history.com/#Lattice-zjj/On-Device-FinLLM&Date)
